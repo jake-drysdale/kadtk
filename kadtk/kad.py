@@ -20,7 +20,7 @@ def calculate_mmd(
     cache_dirs: tuple[Path, Path],
     device: str,
     bandwidth=None,
-    kernel='iq',
+    kernel='gaussian',
     precision=torch.float32,
     eps=1e-8
 ) -> torch.Tensor:
@@ -43,9 +43,9 @@ def calculate_mmd(
     x = x.to(dtype=precision, device=device)
     y = y.to(dtype=precision, device=device)
 
-    # Set adaptive bandwidth if not provided
+    # Use median distance heuristic if bandwidth not provided
     if bandwidth is None:
-        bandwidth = median_pairwise_distance(y) / 2
+        bandwidth = median_pairwise_distance(y)
 
     m, n = x.shape[0], y.shape[0]
     
