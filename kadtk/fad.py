@@ -31,40 +31,64 @@ def qr_eigval(A:torch.Tensor, num_iterations=1000, tol=1e-8):
     eigenvalues = torch.diag(A_k)
     return eigenvalues
 
-def calc_frechet_distance_torch(x:torch.Tensor, y:torch.Tensor, device: str, precision=torch.float32, qr_iter=None, eps=1e-6) -> torch.Tensor:
+def calc_frechet_distance(
+    x: torch.Tensor, 
+    y: torch.Tensor,
+    cache_dirs: tuple[Path, Path],
+    device: str, 
+    precision=torch.float32, 
+    qr_iter=None, 
+    eps=1e-6
+) -> torch.Tensor:
     """FAD implementation in PyTorch.
 
     Args:
       x: The first set of embeddings of shape (n, embedding_dim).
       y: The second set of embeddings of shape (n, embedding_dim).
+      cache_dir: Directory to cache kernel statistics.
       precision: Type setting for matrix calculation precision.
-      qr_iter: Number of iterations for QR decomposition.
-               Defaults to eigendecomposition if not given.
-
+      qr_iter: Number of iterations for QR decomposition. Defaults to eigendecomposition if not given.
+      eps: Small value for numerical stability.
     Returns:
       The FAD between x and y embedding sets.
     """
-    
-    # Apply precision setting
-    if x.dtype is not precision or y.dtype is not precision:
-        x = x.to(dtype=precision, device=device)
-        y = y.to(dtype=precision, device=device)
+    # Load x statistics
+    if cache_dirs[0] is not None and cache_dirs[0].exists():
+        mu_x = torch.tensor(np.load(cache_dirs[0] / 'mu.npy'), dtype=precision, device=device)
+        cov_x = torch.tensor(np.load(cache_dirs[0] / 'cov.npy'), dtype=precision, device=device)
+    else:
+        x = torch.tensor(x, dtype=precision, device=device)
+        mu_x = torch.mean(x, axis=0)
+        cov_x = torch.cov(x.T)
 
-    # Calculate mean vectors
-    mu_x = torch.mean(x, axis=0)
-    mu_y = torch.mean(y, axis=0)
+        if cache_dirs[0] is not None:
+            cache_dirs[0].mkdir(parents=True, exist_ok=True)
+            np.save(cache_dirs[0] / 'mu.npy', mu_x.cpu().numpy())
+            np.save(cache_dirs[0] / 'cov.npy', cov_x.cpu().numpy())
+
+    # Load y statistics
+    if cache_dirs[1] is not None and cache_dirs[1].exists():
+        mu_y = torch.tensor(np.load(cache_dirs[1] / 'mu.npy'), dtype=precision, device=device)
+        cov_y = torch.tensor(np.load(cache_dirs[1] / 'cov.npy'), dtype=precision, device=device)
+    else:
+        y = torch.tensor(y,dtype=precision, device=device)
+        mu_y = torch.mean(y, axis=0)
+        cov_y = torch.cov(y.T)
+
+        if cache_dirs[1] is not None:
+            cache_dirs[1].mkdir(parents=True, exist_ok=True)
+            np.save(cache_dirs[1] / 'mu.npy', mu_y.cpu().numpy())
+            np.save(cache_dirs[1] / 'cov.npy', cov_y.cpu().numpy())
 
     # Calculate mean distance term
     mu_diff = mu_x-mu_y
     diffnorm_sq = mu_diff@mu_diff
     
     # Calculate covariance matrices
-    cov_x = torch.cov(x.T)
-    cov_y = torch.cov(y.T)
-
     cov_prod = cov_x @ cov_y
     cov_prod.diagonal().add_(eps) # numerical stability
 
+    # Calculate trace term
     if qr_iter:
         eig_val = qr_eigval(cov_prod, num_iterations=25, tol=eps)
         sqrt_eig_val = torch.sqrt(torch.clamp(eig_val, min=eps))
@@ -74,7 +98,6 @@ def calc_frechet_distance_torch(x:torch.Tensor, y:torch.Tensor, device: str, pre
         sqrt_eig_val = torch.sqrt(torch.clamp(eig_val, min=eps))
         tr_covmean = torch.sum(sqrt_eig_val)
         
-    print("\n\n FAD cal: ", diffnorm_sq, torch.trace(cov_x), torch.trace(cov_y), 2*tr_covmean)
     return diffnorm_sq + torch.trace(cov_x) + torch.trace(cov_y) - 2*tr_covmean
 
 def calc_embd_statistics(embd_lst: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -84,132 +107,28 @@ def calc_embd_statistics(embd_lst: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return np.mean(embd_lst, axis=0), np.cov(embd_lst, rowvar=False)
 
 
-def calc_frechet_distance(mu1, cov1, mu2, cov2, eps=1e-6):
-    """
-    Adapted from: https://github.com/mseitzer/pytorch-fid/blob/master/src/pytorch_fid/fid_score.py
-    
-    Numpy implementation of the Frechet Distance.
-    The Frechet distance between two multivariate Gaussians X_1 ~ N(mu_1, C_1)
-    and X_2 ~ N(mu_2, C_2) is
-            d^2 = ||mu_1 - mu_2||^2 + Tr(C_1 + C_2 - 2*sqrt(C_1*C_2)).
-    Stable version by Dougal J. Sutherland.
-    Params:
-    -- mu1   : Numpy array containing the activations of a layer of the
-            inception net (like returned by the function 'get_predictions')
-            for generated samples.
-    -- mu2   : The sample mean over activations, precalculated on an
-            representative data set.
-    -- cov1: The covariance matrix over activations for generated samples.
-    -- cov2: The covariance matrix over activations, precalculated on an
-            representative data set.
-    Returns:
-    --   : The Frechet Distance.
-    """
-    mu1 = np.atleast_1d(mu1)
-    mu2 = np.atleast_1d(mu2)
-
-    cov1 = np.atleast_2d(cov1)
-    cov2 = np.atleast_2d(cov2)
-
-    assert mu1.shape == mu2.shape, \
-        f'Training and test mean vectors have different lengths ({mu1.shape} vs {mu2.shape})'
-    assert cov1.shape == cov2.shape, \
-        f'Training and test covariances have different dimensions ({cov1.shape} vs {cov2.shape})'
-
-    diff = mu1 - mu2
-
-    # Product might be almost singular
-    # NOTE: issues with sqrtm for newer scipy versions
-    # using eigenvalue method as workaround
-    covmean_sqrtm, _ = linalg.sqrtm(cov1.dot(cov2), disp=False)
-    
-    # eigenvalue method
-    D, V = linalg.eig(cov1.dot(cov2))
-    covmean = (V * scisqrt(D)) @ linalg.inv(V)
-
-    if not np.isfinite(covmean).all():
-        offset = np.eye(cov1.shape[0]) * eps
-        covmean = linalg.sqrtm((cov1 + offset).dot(cov2 + offset))
-
-    # Numerical error might give slight imaginary component
-    if np.iscomplexobj(covmean):
-        if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
-            m = np.max(np.abs(covmean.imag))
-            raise ValueError('Imaginary component {}'.format(m))
-        covmean = covmean.real
-
-    tr_covmean = np.trace(covmean)
-    tr_covmean_sqrtm = np.trace(covmean_sqrtm)
-    if np.iscomplexobj(tr_covmean_sqrtm):
-        if np.abs(tr_covmean_sqrtm.imag) < 1e-3:
-            tr_covmean_sqrtm = tr_covmean_sqrtm.real
-
-    if not(np.iscomplexobj(tr_covmean_sqrtm)):
-        delt = np.abs(tr_covmean - tr_covmean_sqrtm)
-        if delt > 1e-3:
-            print(f'WARNING: Detected high error in sqrtm calculation: {delt}')
-            
-    print("\n\n FAD cal: ", diff.dot(diff), np.trace(cov1), np.trace(cov2), 2*tr_covmean)
-    return (diff.dot(diff) + np.trace(cov1)
-            + np.trace(cov2) - 2 * tr_covmean)
-
-
 class FrechetAudioDistance:
-    def __init__(self, ml: ModelLoader, device: str, audio_load_worker: int = 8, logger = None, force_score_calc=False):
+    def __init__(self, ml: ModelLoader, device: str, audio_load_worker: int = 8, logger = None, force_stats_calc=False):
         self.ml = ml
         self.device = torch.device(device)
         self.emb_loader = EmbeddingLoader(ml, load_model=False)
         self.audio_load_worker = audio_load_worker
         self.logger = logger        
-        self.force_score_calc = force_score_calc
+        self.force_stats_calc = force_stats_calc
 
         # Disable gradient calculation because we're not training
         torch.autograd.set_grad_enabled(False)
-    
-    def load_stats(self, path: PathLike):
-        """
-        Load embedding statistics from a directory.
-        """
-        if isinstance(path, str):
-            # Check if it's a pre-computed statistic file
-            bp = Path(__file__).parent / "fad_stats"
-            stats = bp / (path.lower() + ".npz")
-            if stats.exists():
-                path = stats
 
+    def get_cache_dir(self, path: PathLike):
+        if self.force_stats_calc:
+            return None
+
+        # Check cache stats
         path = Path(path)
-
-        # Check if path is a file
-        if (not self.force_score_calc) and path.is_file():
-            # Load it as a npz
-            self.logger.info(f"Loading embedding statistics from {path}...")
-            with np.load(path) as data:
-                if f'{self.ml.name}.mu' not in data or f'{self.ml.name}.cov' not in data:
-                    raise ValueError(f"FAD statistics file {path} doesn't contain data for model {self.ml.name}")
-                return data[f'{self.ml.name}.mu'], data[f'{self.ml.name}.cov']
         cache_dir = path / "fad_stats" / self.ml.name
-        emb_dir = path / "embeddings" / self.ml.name
-        if (not self.force_score_calc) and cache_dir.exists():
-            self.logger.info(f"Embedding statistics is already cached for {path}, loading...")
-            mu = np.load(cache_dir / "mu.npy")
-            cov = np.load(cache_dir / "cov.npy")
-            return mu, cov
-        
-        if not path.is_dir():
-            self.logger.error(f"The dataset you want to use ({path}) is not a directory nor a file.")
-            exit(1)
-
-        self.logger.info(f"Loading embedding files from {path}...")
-        
-        mu, cov = calculate_embd_statistics_online(list(emb_dir.glob("*.npy")))
-        self.logger.info("> Embeddings statistics calculated.")
-
-        # Save statistics
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        np.save(cache_dir / "mu.npy", mu)
-        np.save(cache_dir / "cov.npy", cov)
-        
-        return mu, cov
+        if cache_dir.exists(): 
+            self.logger.info(f"FAD statistics is already cached for {path}.")
+        return cache_dir
 
     def score(self, baseline: PathLike, eval: PathLike):
         """
@@ -218,10 +137,16 @@ class FrechetAudioDistance:
         :param baseline: Baseline matrix or directory containing baseline audio files
         :param eval: Eval matrix or directory containing eval audio files
         """
-        mu_bg, cov_bg = self.load_stats(baseline)
-        mu_eval, cov_eval = self.load_stats(eval)
+        bg_cache_dir, eval_cache_dir = self.get_cache_dir(baseline), self.get_cache_dir(eval)
+        cache_dirs = (bg_cache_dir, eval_cache_dir)
 
-        return calc_frechet_distance(mu_bg, cov_bg, mu_eval, cov_eval)
+        embd_bg = self.emb_loader.load_embeddings(baseline)
+        embd_eval = self.emb_loader.load_embeddings(eval)
+        
+        embd_bg = torch.tensor(embd_bg)
+        embd_eval = torch.tensor(embd_eval)
+
+        return calc_frechet_distance(embd_bg, embd_eval, cache_dirs, self.device)
 
     def score_inf(self, baseline: PathLike, eval_files: list[Path], steps: int = 25, min_n = 500, raw: bool = False):
         """
