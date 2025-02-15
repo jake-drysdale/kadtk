@@ -60,10 +60,10 @@ def calculate_mmd(
     else:
         raise ValueError("Invalid kernel type. Valid kernels: 'gaussian', 'iq', 'imq'")
     
-    # Compute kernel statistics for xx
+    # Load x kernel statistics
     if cache_dirs[0] is not None and cache_dirs[0].exists():
-        x_sqnorms = torch.tensor(np.load(cache_dirs[0] / "sqnorms.npy"), device=device)
-        k_xx_mean = torch.tensor(np.load(cache_dirs[0] / "kernel_mean.npy"), device=device)
+        x_sqnorms = torch.tensor(np.load(cache_dirs[0] / "sqnorms.npy"), dtype=precision, device=device)
+        k_xx_mean = torch.tensor(np.load(cache_dirs[0] / "kernel_mean.npy"), dtype=precision, device=device)
     else:
         xx = x @ x.T
         x_sqnorms = torch.diagonal(xx)
@@ -77,7 +77,7 @@ def calculate_mmd(
             np.save(cache_dirs[0] / "sqnorms.npy", x_sqnorms.cpu().numpy())
             np.save(cache_dirs[0] / "kernel_mean.npy", k_xx_mean.cpu().numpy())
     
-    # Compute kernel statistics for yy
+    # Load y kernel statistics
     if cache_dirs[1] is not None and cache_dirs[1].exists():
         y_sqnorms = torch.tensor(np.load(cache_dirs[1] / "sqnorms.npy"), device=device)
         k_yy_mean = torch.tensor(np.load(cache_dirs[1] / "kernel_mean.npy"), device=device)
@@ -143,24 +143,24 @@ class KADInfResults(NamedTuple):
     points: list[tuple[int, float]]
 
 class KernelAudioDistance:
-    def __init__(self, ml: ModelLoader, device: str, bandwidth: float = None, audio_load_worker: int = 8, logger = None, force_score_calc=False):
+    def __init__(self, ml: ModelLoader, device: str, bandwidth: float = None, audio_load_worker: int = 8, logger = None, force_stats_calc=False):
         self.ml = ml
         self.device = torch.device(device)
         self.bandwidth = bandwidth # Bandwidth for the Gaussian kernel
         self.emb_loader = EmbeddingLoader(ml, load_model=False)
         self.audio_load_worker = audio_load_worker
         self.logger = logger
-        self.force_score_calc = force_score_calc
+        self.force_stats_calc = force_stats_calc
 
     def get_cache_dir(self, path: PathLike):
-        if self.force_score_calc:
+        if self.force_stats_calc:
             return None
 
         # Check cache stats
         path = Path(path)
         cache_dir = path / "kernel_stats" / self.ml.name
         if cache_dir.exists(): 
-            self.logger.info(f"Kernel statistics is already cached for {path}, loading...")
+            self.logger.info(f"Kernel statistics is already cached for {path}.")
         return cache_dir
     
     def score(self, baseline: PathLike, eval: PathLike):
@@ -173,11 +173,8 @@ class KernelAudioDistance:
         bg_cache_dir, eval_cache_dir = self.get_cache_dir(baseline), self.get_cache_dir(eval)
         cache_dirs = (bg_cache_dir, eval_cache_dir)
         
-        import time
-        t = time.time()
         embd_bg = self.emb_loader.load_embeddings(baseline)
         embd_eval = self.emb_loader.load_embeddings(eval)
-        print(f"Time taken to load embeddings: {time.time() - t:.2f}s")
         
         embd_bg = torch.tensor(embd_bg)
         embd_eval = torch.tensor(embd_eval)
