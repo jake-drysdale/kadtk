@@ -1,4 +1,3 @@
-import time
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Union
@@ -15,7 +14,6 @@ def main():
     """
     Launcher for running FAD on two directories using a model.
     """
-    t = time.time()
     models = {m.name: m for m in get_all_models()}
 
     parser = ArgumentParser()
@@ -42,7 +40,7 @@ def main():
     parser.add_argument('--indiv', action='store_true', help="Calculate FAD for individual songs and store the results in the given file")
     parser.add_argument('--force-emb-encode', action='store_true', default=False,
                         help="Force re-encoding of embeddings. If set to True, embeddings caches will be re-extracted ignoring the existing cache.")
-    parser.add_argument('--force-score-calc', action='store_true', default=False,
+    parser.add_argument('--force-stats-calc', action='store_true', default=False,
                         help="Force recalculation of metric score. If set to True, metric stats cache will be re-calculated ignoring the existing cache.")
     parser.add_argument('--audio-len', type=Union[float,int], default=None,
                         help="Length of audio clips in seconds.")
@@ -69,9 +67,9 @@ def main():
 
     # 2. Calculate the chosen metric
     if args.fad:
-        metric = FrechetAudioDistance(model, device, audio_load_worker=args.workers, logger=logger, force_score_calc=args.force_score_calc)
+        metric = FrechetAudioDistance(model, device, audio_load_worker=args.workers, logger=logger, force_stats_calc=args.force_stats_calc)
     else:
-        metric = KernelAudioDistance(model, device, bandwidth=args.bandwidth, audio_load_worker=args.workers, logger=logger, force_score_calc=args.force_score_calc)
+        metric = KernelAudioDistance(model, device, bandwidth=args.bandwidth, audio_load_worker=args.workers, logger=logger, force_stats_calc=args.force_stats_calc)
     
     if args.inf:
         score = metric.score_inf(baseline, list(Path(eval).glob('*.*')))
@@ -98,8 +96,6 @@ def main():
         logger.info(f"{metric_name} score appended to {csv_path}")
     else:
         print(f"Score: {score}")
-
-    print(f'Total time: {time.time() - t:.2f}s')
 
 if __name__ == "__main__":
     main()
