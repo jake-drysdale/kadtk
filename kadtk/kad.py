@@ -52,11 +52,11 @@ def calculate_mmd(
     # Define kernel functions
     gamma = 1 / (2 * bandwidth**2 + eps)
     if kernel == 'gaussian':
-        kernel_rbf = lambda a: torch.exp(-gamma * a)
+        kernel = lambda a: torch.exp(-gamma * a)
     elif kernel == 'iq':
-        kernel_rbf = lambda a: 1 / (1 + gamma * a)
+        kernel = lambda a: 1 / (1 + gamma * a)
     elif kernel == 'imq':
-        kernel_rbf = lambda a: 1 / torch.sqrt(1 + gamma * a)
+        kernel = lambda a: 1 / torch.sqrt(1 + gamma * a)
     else:
         raise ValueError("Invalid kernel type. Valid kernels: 'gaussian', 'iq', 'imq'")
     
@@ -68,7 +68,7 @@ def calculate_mmd(
         xx = x @ x.T
         x_sqnorms = torch.diagonal(xx)
         d2_xx = x_sqnorms.unsqueeze(1) + x_sqnorms.unsqueeze(0) - 2 * xx # shape (m, m)
-        k_xx = kernel_rbf(d2_xx)
+        k_xx = kernel(d2_xx)
         k_xx = k_xx - torch.diag(torch.diagonal(k_xx))
         k_xx_mean = k_xx.sum() / (m * (m - 1))
 
@@ -85,7 +85,7 @@ def calculate_mmd(
         yy = y @ y.T
         y_sqnorms = torch.diagonal(yy)
         d2_yy = y_sqnorms.unsqueeze(1) + y_sqnorms.unsqueeze(0) - 2 * yy # shape (n, n)
-        k_yy = kernel_rbf(d2_yy)
+        k_yy = kernel(d2_yy)
         k_yy = k_yy - torch.diag(torch.diagonal(k_yy))
         k_yy_mean = k_yy.sum() / (n * (n - 1))
 
@@ -97,7 +97,7 @@ def calculate_mmd(
     # Compute kernel statistics for xy
     xy = x @ y.T
     d2_xy = x_sqnorms.unsqueeze(1) + y_sqnorms.unsqueeze(0) - 2 * xy # shape (m, n)
-    k_xy = kernel_rbf(d2_xy)
+    k_xy = kernel(d2_xy)
     k_xy_mean = k_xy.mean()
     
     # Compute MMD
