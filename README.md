@@ -32,7 +32,7 @@ The toolkit provides a CLI command for computing KAD scores. It automatically ex
 ```sh
 kadtk <model_name> <target-set dir> <evaluation-set dir> [--fad/--inf/--indiv]
 ```
-*--fad* TODO(description. this option is for FAD calculation. if you turn on this, the code will calculate FAD, not KAD) <br/>
+*--fad* compute Fréchet Audio Distance instead of Kernel Audio Distance. <br/>
 *--inf* option uses metric-inf extrapolation, and *--indiv* calculates metric for individual audios. <br/>
 *--force_emb_calc* forces re-calculation of embeddings. <br/>
 *--audio_len* (sec) checks if the audio match the given length.
@@ -42,20 +42,20 @@ kadtk <model_name> <target-set dir> <evaluation-set dir> [--fad/--inf/--indiv]
 
 | Model | Name in KADtk | Description | Creator |
 | --- | --- | --- | --- |
-| [CLAP](https://github.com/microsoft/CLAP) | `clap-2023` | Learning audio concepts from natural language supervision | Microsoft |
-| [CLAP](https://github.com/LAION-AI/CLAP) | `clap-laion-{audio/music}` | Contrastive Language-Audio Pretraining | LAION |
-| [Encodec](https://github.com/facebookresearch/encodec) | `encodec-emb` | State-of-the-art deep learning based audio codec | Facebook/Meta Research |
-| [MERT](https://huggingface.co/m-a-p/MERT-v1-95M) | `MERT-v1-95M-{layer}` | Acoustic Music Understanding Model with Large-Scale Self-supervised Training | m-a-p |
-| [VGGish](https://github.com/tensorflow/models/blob/master/research/audioset/vggish/README.md) | `vggish` | Audio feature classification embedding | Google |
-| [PANNs](https://github.com/qiuqiangkong/audioset_tagging_cnn/README.md) | `panns-cnn14-{16k/32k}, panns-wavegram-logmel` | PANNs: Large-Scale Pretrained Audio Neural Networks for Audio Pattern Recognition | Kong, Qiuqiang, et al. |
-| [OpenL3](https://github.com/marl/openl3/README.md) | `openl3-{mel256/mel128}-{env/music}` | Look, Listen and Learn More: Design Choices for Deep Audio Embeddings | Cramer, Aurora et al. |
-| [PaSST](https://github.com/kkoutini/passt_hear21/README.md) | `passt-{base-{10s/20s/30s}, passt-openmic, passt-fsd50k` (10s default, base for AudioSet) | Efficient Training of Audio Transformers with Patchout | Koutini, Khaled et al. |
-| [DAC](https://github.com/descriptinc/descript-audio-codec) | `dac-44kHz` | High-Fidelity Audio Compression with Improved RVQGAN | Descript |
-| [CDPAM](https://github.com/pranaymanocha/PerceptualAudio) | `cdpam-{acoustic/content}` | Contrastive learning-based Deep Perceptual Audio Metric | Pranay Manocha et al. |
-| [Wav2vec 2.0](https://github.com/facebookresearch/fairseq/blob/main/examples/wav2vec/README.md) | `w2v2-{base/large}` | Wav2vec 2.0: A Framework for Self-Supervised Learning of Speech Representations | Facebook/Meta Research |
-| [HuBERT](https://github.com/facebookresearch/fairseq/blob/main/examples/hubert/README.md) | `hubert-{base/large}` | HuBERT: Self-Supervised Speech Representation Learning by Masked Prediction of Hidden Units | Facebook/Meta Research |
-| [WavLM](https://github.com/microsoft/unilm/tree/master/wavlm) | `wavlm-{base/base-plus/large}` | WavLM: Large-Scale Self-Supervised Pre-Training for Full Stack Speech Processing | Microsoft |
-| [Whisper](https://github.com/openai/whisper) | `whisper-{tiny/base/small/medium/large}` | Robust Speech Recognition via Large-Scale Weak Supervision | OpenAI |
+| [CLAP](https://github.com/microsoft/CLAP) | `clap-2023` | general audio representation | Microsoft |
+| [CLAP](https://github.com/LAION-AI/CLAP) | `clap-laion-{audio/music}` | general audio, music representation | LAION |
+| [MERT](https://huggingface.co/m-a-p/MERT-v1-95M) | `MERT-v1-95M-{layer}` | music understanding | m-a-p |
+| [VGGish](https://github.com/tensorflow/models/blob/master/research/audioset/vggish/README.md) | `vggish` | general audio embedding | Google |
+| [PANNs](https://github.com/qiuqiangkong/audioset_tagging_cnn/README.md) | `panns-cnn14-{16k/32k}, panns-wavegram-logmel` | general audio embedding | Kong, Qiuqiang, et al. |
+| [OpenL3](https://github.com/marl/openl3/README.md) | `openl3-{mel256/mel128}-{env/music}` | general audio embedding | Cramer, Aurora et al. |
+| [PaSST](https://github.com/kkoutini/passt_hear21/README.md) | `passt-{base-{10s/20s/30s}, passt-openmic, passt-fsd50k` (10s default, base for AudioSet) | general audio embedding | Koutini, Khaled et al. |
+| [Encodec](https://github.com/facebookresearch/encodec) | `encodec-emb` | audio codec | Facebook/Meta Research |
+| [DAC](https://github.com/descriptinc/descript-audio-codec) | `dac-44kHz` | audio codec | Descript |
+| [CDPAM](https://github.com/pranaymanocha/PerceptualAudio) | `cdpam-{acoustic/content}` | perceptual audio metric | Pranay Manocha et al. |
+| [Wav2vec 2.0](https://github.com/facebookresearch/fairseq/blob/main/examples/wav2vec/README.md) | `w2v2-{base/large}` | speech representation | Facebook/Meta Research |
+| [HuBERT](https://github.com/facebookresearch/fairseq/blob/main/examples/hubert/README.md) | `hubert-{base/large}` | speech representation | Facebook/Meta Research |
+| [WavLM](https://github.com/microsoft/unilm/tree/master/wavlm) | `wavlm-{base/base-plus/large}` | speech representation | Microsoft |
+| [Whisper](https://github.com/openai/whisper) | `whisper-{tiny/base/small/medium/large}` | speech recognition | OpenAI |
 
 
 ### Optional Dependencies
