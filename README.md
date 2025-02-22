@@ -1,32 +1,46 @@
 # Kernel Audio Distance Toolkit
-
-Description
-
-* 1
-* 2
-
+The Kernel Audio Distance Toolkit (KADTK) provides an efficient and standardized implementation of Kernel Audio Distance (KAD)—a distribution-free, unbiased, and computationally efficient metric for evaluating generative audio.
 
 ## 1. Installation
 
-guide
+To use the KAD toolkit, you must first install it. This library is created and tested on Python 3.10 on Linux but should work on Python >3.9.
+
+### 1.1 Install
+Install torch https://pytorch.org/. Only pytorch~=2.1.x officially supported.
+Ensure your device is GPU-compatible and install the necessary software for CUDA support.
+
+Ensure you have Poetry installed (Poetry Docs). Then, run:
+```sh
+poetry install
+```
+
+If you prefer a manual installation, first install PyTorch (pytorch.org), then run:
+```sh
+pip install -r requirements.txt
+```
+
+### 1.2 Troubleshooting
+if scipy causes some error, reinstall scipy: pip uninstall scipy && pip install scipy==1.11.2
+if charset causes some error, (re)install chardet: pip install chardet
+Optional Dependencies
+Optionally, you can install dependencies that add additional embedding support.
+
+
 
 ## 2. Usage
-
+The toolkit provides a CLI command for computing KAD scores. It automatically extracts target embeddings and computes the KAD score between your generated audio files and an evaluation dataset.
 ```sh
-kadtk <model_name> <baseline> <evaluation-set> [--inf/--indiv]
-
-
-# Compute embeddings
-kadtk.embeds -m <models...> -d <datasets...>
+kadtk <model_name> <target-set dir> <evaluation-set dir> [--fad/--inf/--indiv]
 ```
-*--inf* option uses FAD-inf extrapolation, and *--indiv* calculates FAD for individual songs. <br/>
+*--fad* TODO(description. this option is for FAD calculation. if you turn on this, the code will calculate FAD, not KAD) <br/>
+*--inf* option uses metric-inf extrapolation, and *--indiv* calculates metric for individual audios. <br/>
 *--force_emb_calc* forces re-calculation of embeddings. <br/>
 *--audio_len* (sec) checks if the audio match the given length.
 
 
 ### Supported Models
 
-| Model | Name in FADtk | Description | Creator |
+| Model | Name in KADtk | Description | Creator |
 | --- | --- | --- | --- |
 | [CLAP](https://github.com/microsoft/CLAP) | `clap-2023` | Learning audio concepts from natural language supervision | Microsoft |
 | [CLAP](https://github.com/LAION-AI/CLAP) | `clap-laion-{audio/music}` | Contrastive Language-Audio Pretraining | LAION |
@@ -48,11 +62,13 @@ kadtk.embeds -m <models...> -d <datasets...>
 
 Optionally, you can install dependencies that add additional embedding support. They are:
 
+* PANNS(updated): `pip install git+https://github.com/DCASE2024-Task7-Sound-Scene-Synthesis/fadtk.git`
 * CDPAM: `pip install cdpam`
 * DAC: `pip install descript-audio-codec==1.0.0`
 
 
-#### Example 1: Computing FAD scores on Dev Set
+
+#### Example 1: Computing KAD scores on Dev Set
 1. Download Dev Set and unzip
 ```sh
 mkdir path/to/dev
@@ -68,7 +84,7 @@ path/to/dev/
 │   ├── vggish
 │   ├── clap-2023
 │   └── ...
-└── caption.csv # not used for FAD calculation, just for your interest.
+└── caption.csv # not used for calculation, just for your interest.
 path/to/eval/
 ├── embeddings/
 │   └── ...
@@ -78,24 +94,23 @@ path/to/eval/
 ```
 3. Calculate KAD score
 ```sh
-# Compute FAD between the baseline and evaluation datasets on two different models
+# Compute KAD between the baseline and evaluation datasets on two different models
 kadtk panns-wavegram-logmel /path/to/dev /path/to/evaluation/audio
-kadtk vggish /path/to/dev /path/to/evaluation/audio --force_emb_calc
-kadtk clap-2023 /path/to/dev /path/to/evaluation/audio --audio_len 4
+kadtk vggish /path/to/dev /path/to/evaluation/audio --fad
 ```
 
-#### Example 2: Compute individual FAD scores for each audio
+#### Example 2: Compute individual KAD scores for each audio
 
 ```sh
 kadtk encodec-emb /path/to/baseline/audio /path/to/evaluation/audio --indiv scores.csv
 ```
 
-#### Example 3: Compute FAD scores with your own baseline
+#### Example 3: Compute KAD scores with your own baseline
 
 First, create two directories, one for the baseline and one for the evaluation, and place *only* the audio files in them. Then, run the following commands:
 
 ```sh
-# Compute FAD between the baseline and evaluation datasets
+# Compute KAD between the baseline and evaluation datasets
 kadtk clap-laion-audio /path/to/baseline/audio /path/to/evaluation/audio
 ```
 
@@ -109,4 +124,22 @@ kadtk.embeds -m Model1 Model2 -d /dataset1 /dataset2
 
 ## 0x06. Citation, Acknowledgments and Licenses
 
-TBU
+```latex
+@article{fad_embeddings,
+    author = {Tailleur, Modan and Lee, Junwon and Lagrange, Mathieu and Choi, Keunwoo and Heller, Laurie M. and Imoto, Keisuke and Okamoto, Yuki},
+    title = {Correlation of Fréchet Audio Distance With Human Perception of Environmental Audio Is Embedding Dependant},
+    journal = {arXiv:2403.17508},
+    url = {https://arxiv.org/abs/2403.17508},
+    year = {2024}
+}
+```
+
+```latex
+@inproceedings{fadtk,
+  title = {Adapting Frechet Audio Distance for Generative Music Evaluation},
+  author = {Azalea Gui, Hannes Gamper, Sebastian Braun, Dimitra Emmanouilidou},
+  booktitle = {Proc. IEEE ICASSP 2024},
+  year = {2024},
+  url = {https://arxiv.org/abs/2311.01616},
+}
+```
