@@ -1,9 +1,11 @@
+from email.policy import strict
 import importlib.util
 import logging
 import math
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
+from turtle import st
 from typing import Literal, Optional, Union
 
 import librosa
@@ -45,6 +47,13 @@ class ModelLoader(ABC):
             embd = embd.astype(np.float16)
 
         return embd
+    
+    def postprocess_resoultion(self, audio: np.ndarray, emb: np.ndarray, pooling_resolution_sec: int = 1) -> np.ndarray:
+        audio_dur = audio.shape[0] / self.sr
+        pooling_resoultion = audio_dur / pooling_resolution_sec
+        stride = int(emb.shape[0] / pooling_resoultion)
+        emb = emb.unfold(0, stride, stride).mean(-1)
+        return emb
 
     @abstractmethod
     def load_model(self):
@@ -212,6 +221,7 @@ class EncodecEmbModel(ModelLoader):
 
         # Concatenate
         encoded_frames = torch.cat(encoded_frames, dim=0) # [timeframes, 128]
+        encoded_frames = self.postprocess_resoultion(audio, encoded_frames)
         return encoded_frames
 
     def _get_frame(self, audio: np.ndarray) -> np.ndarray:
@@ -311,7 +321,8 @@ class DACModel(ModelLoader):
 
         emb = torch.cat(emb, dim=0)
         print(emb.shape, f'(computing finished in {(time.time() - stime) * 1000:.0f}ms)')
-
+        
+        emb = self.postprocess_resoultion(audio, emb)
         return emb
 
     def load_wav(self, wav_file: Path) -> np.ndarray:
@@ -357,7 +368,7 @@ class MERTModel(ModelLoader):
             out = self.model(**inputs, output_hidden_states=True)
             out = torch.stack(out.hidden_states).squeeze() # [13 layers, timeframes, 768]
             out = out[self.layer] # [timeframes, 768]
-
+            out = self.postprocess_resoultion(audio, out)
         return out
 
 
@@ -604,6 +615,7 @@ class W2V2Model(ModelLoader):
             out = self.model(**inputs, output_hidden_states=True)
             out = torch.stack(out.hidden_states).squeeze()  # [13 or 25 layers, timeframes, 768 or 1024]
             out = out[self.layer]  # [timeframes, 768 or 1024]
+            out = self.postprocess_resoultion(audio, out)
 
         return out
 
@@ -678,6 +690,7 @@ class WavLMModel(ModelLoader):
             out = self.model(**inputs, output_hidden_states=True)
             out = torch.stack(out.hidden_states).squeeze()  # [13 or 25 layers, timeframes, 768 or 1024]
             out = out[self.layer]  # [timeframes, 768 or 1024]
+            out = self.postprocess_resoultion(audio, out)
 
         return out
 
