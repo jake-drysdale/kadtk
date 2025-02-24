@@ -21,16 +21,15 @@ encodec = "^0.1.1"
 transformers = "^4.30.0"
 laion-clap = "^1.1.4"
 nnaudio = "^0.3.2"
-torch = ">=2.1.0,<2.5.0"
+torch = "^2.5.1"
 resampy = "^0.4.2"
 hear21passt = "^0.0.26"
 tensorflow = ">=2.0.0"
 kapre = ">=0.3.5"
-msclap = "^1.3.3"
 
 [tool.poetry.scripts]
 kadtk = "kadtk.__main__:main"
-kadtk-embeds = "kadtk.embeds.__main__:main"
+kadtk-embeds = "kadtk.embeds:main"
 
 
 [build-system]
