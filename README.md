@@ -43,7 +43,7 @@ kadtk-embeds -m vggish panns-wavegram-logmel -d /test_samples/generated_samples 
 
 ```
 
-### Supported Models
+## 3. Supported Models
 
 | Model | Name in KADtk | Description | Creator |
 | --- | --- | --- | --- |
@@ -72,7 +72,7 @@ Optionally, you can install dependencies that add additional embedding support. 
 * DAC: `pip install descript-audio-codec==1.0.0`
 
 
-## 0x06. Citation, Acknowledgments and Licenses
+## 4. Citation, Acknowledgments and Licenses
 
 ```latex
 @article{fad_embeddings,
