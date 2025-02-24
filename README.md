@@ -69,7 +69,7 @@ Optionally, you can install dependencies that add additional embedding support. 
 
 * PANNS(updated): `pip install git+https://github.com/DCASE2024-Task7-Sound-Scene-Synthesis/fadtk.git`
 * CDPAM: `pip install cdpam`
-* DAC: `pip install descript-audio-codec==1.0.0``
+* DAC: `pip install descript-audio-codec==1.0.0`
 
 
 ## 0x06. Citation, Acknowledgments and Licenses
