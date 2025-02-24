@@ -36,10 +36,10 @@ kadtk {model_name} {target-set dir} {evaluation-set dir}
 
 (Examples)
 ```sh
-kadtk panns-wavegram-logmel /path/to/dev /path/to/evaluation 
-kadtk vggish /path/to/dev /path/to/evaluation --fad # it will calculate FAD instead of KAD
-kadtk passt-fsd50k /path/to/dev /path/to/evaluation --indiv scores.csv # it will save indivisual sample-wise scores in scores.csv
-kadtk-embeds -m Model1 Model2 -d /dataset1 /dataset2 # 
+kadtk panns-wavegram-logmel /test_samples/generated_samples /test_samples/dcase2023_eval
+kadtk vggish /test_samples/generated_samples /test_samples/dcase2023_eval --fad # it will calculate FAD instead of KAD
+kadtk passt-fsd50k /test_samples/generated_samples /test_samples/dcase2023_eval --indiv scores.csv # it will save indivisual sample-wise scores in scores.csv
+kadtk-embeds -m vggish panns-wavegram-logmel -d /test_samples/generated_samples /test_samples/dcase2023_eval # 
 
 ```
 
