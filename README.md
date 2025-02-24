@@ -39,7 +39,7 @@ kadtk {model_name} {target-set dir} {evaluation-set dir}
 kadtk panns-wavegram-logmel /test_samples/generated_samples /test_samples/dcase2023_eval
 kadtk vggish /test_samples/generated_samples /test_samples/dcase2023_eval --fad # it will calculate FAD instead of KAD
 kadtk passt-fsd50k /test_samples/generated_samples /test_samples/dcase2023_eval --indiv scores.csv # it will save indivisual sample-wise scores in scores.csv
-kadtk-embeds -m vggish panns-wavegram-logmel -d /test_samples/generated_samples /test_samples/dcase2023_eval # 
+kadtk-embeds -m vggish panns-wavegram-logmel -d /test_samples/generated_samples /test_samples/dcase2023_eval # will only save each embeddings
 
 ```
 
