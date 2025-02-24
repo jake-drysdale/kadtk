@@ -8,6 +8,8 @@ from hypy_utils import write
 from hypy_utils.tqdm_utils import tmap, tq
 from numpy.lib.scimath import sqrt as scisqrt
 from scipy import linalg
+import warnings
+warnings.filterwarnings("ignore")
 
 from .emb_loader import EmbeddingLoader
 from .model_loader import ModelLoader

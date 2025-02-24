@@ -6,10 +6,11 @@ import numpy as np
 import torch
 from hypy_utils import write
 from hypy_utils.tqdm_utils import tmap, tq
+import warnings
+warnings.filterwarnings("ignore")
 
 from kadtk.emb_loader import EmbeddingLoader
 from kadtk.model_loader import ModelLoader
-
 from .utils import *
 
 SCALE_FACTOR = 1000
