@@ -4,10 +4,9 @@ from typing import NamedTuple, Union
 
 import numpy as np
 import torch
+import scipy.linalg
 from hypy_utils import write
 from hypy_utils.tqdm_utils import tmap, tq
-from numpy.lib.scimath import sqrt as scisqrt
-from scipy import linalg
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -39,7 +38,6 @@ def calc_frechet_distance(
     cache_dirs: tuple[Path, Path],
     device: str, 
     precision=torch.float32, 
-    qr_iter=None, 
     eps=1e-6
 ) -> torch.Tensor:
     """FAD implementation in PyTorch.
@@ -91,14 +89,11 @@ def calc_frechet_distance(
     cov_prod.diagonal().add_(eps) # numerical stability
 
     # Calculate trace term
-    if qr_iter:
-        eig_val = qr_eigval(cov_prod, num_iterations=25, tol=eps)
-        sqrt_eig_val = torch.sqrt(torch.clamp(eig_val, min=eps))
-        tr_covmean = torch.sum(sqrt_eig_val)
-    else:
-        eig_val = torch.linalg.eigvals(cov_prod).real
-        sqrt_eig_val = torch.sqrt(torch.clamp(eig_val, min=eps))
-        tr_covmean = torch.sum(sqrt_eig_val)
+    cov_prod_np = cov_x.cpu().numpy().dot(cov_y.cpu().numpy())
+    covmean_sqrtm, _ = scipy.linalg.sqrtm(cov_prod_np, disp=False)
+    if np.iscomplexobj(covmean_sqrtm):
+        covmean_sqrtm = covmean_sqrtm.real  # Ensure real values
+    tr_covmean = torch.tensor(np.trace(covmean_sqrtm), dtype=precision, device=device)
         
     return diffnorm_sq + torch.trace(cov_x) + torch.trace(cov_y) - 2*tr_covmean
 
