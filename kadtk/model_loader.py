@@ -397,8 +397,9 @@ class CLAPLaionModel(ModelLoader):
         # Patch the model file to remove position_ids (will raise an error otherwise)
         import transformers
         import laion_clap
+        from importlib.metadata import version as metaversion
         if version.parse(transformers.__version__) >= version.parse("4.31.0") \
-            and version.parse(laion_clap.__version__) < version.parse("1.1.6"): 
+            and version.parse(metaversion("laion_clap")) < version.parse("1.1.6"): 
             self.patch_model_430(self.model_file)
 
     def patch_model_430(self, file: Path):
