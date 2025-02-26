@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from turtle import st
 from typing import Literal, Optional, Union
+from packaging import version
 
 import librosa
 import numpy as np
@@ -394,13 +395,17 @@ class CLAPLaionModel(ModelLoader):
             download_file(url, self.model_file)
             
         # Patch the model file to remove position_ids (will raise an error otherwise)
-        self.patch_model_430(self.model_file)
+        import transformers
+        import laion_clap
+        if version.parse(transformers.__version__) >= version.parse("4.31.0") \
+            and version.parse(laion_clap.__version__) < version.parse("1.1.6"): 
+            self.patch_model_430(self.model_file)
 
     def patch_model_430(self, file: Path):
         """
         Patch the model file to remove position_ids (will raise an error otherwise)
         This is a new issue after the transformers 4.30.0 update
-        Please refer to https://github.com/LAION-AI/CLAP/issues/127
+        Please refer to https://github.com/LAION-AI/CLAP/issues/127 and https://github.com/LAION-AI/CLAP/pull/118
         """
         # Create a "patched" file when patching is done
         patched = file.parent / f"{file.name}.patched.430"
