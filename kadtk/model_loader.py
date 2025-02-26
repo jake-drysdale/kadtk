@@ -165,7 +165,7 @@ class PANNsModel(ModelLoader):
         else:
             raise ValueError(f"Unexpected variant of PANNs model: {self.variant}.")
         
-        state_dict = torch.load(self.model_file)
+        state_dict = torch.load(self.model_file, weights_only=False)
         self.model.load_state_dict(state_dict["model"])
         self.model.eval()
         self.model.to(self.device)
@@ -411,7 +411,7 @@ class CLAPLaionModel(ModelLoader):
         log.warning("Patching LAION-CLAP's model checkpoints")
         
         # Load the checkpoint from the given path
-        checkpoint = torch.load(file, map_location="cpu")
+        checkpoint = torch.load(file, map_location="cpu", weights_only=False)
 
         # Extract the state_dict from the checkpoint
         if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
