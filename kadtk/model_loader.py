@@ -16,7 +16,7 @@ import torch.nn.functional as F
 from hypy_utils.downloader import download_file
 from torch import nn
 
-from .models import panns
+from .models import panns, msclap
 from .utils import chunk_np_array
 
 log = logging.getLogger(__name__)
@@ -539,9 +539,7 @@ class CLAPModel(ModelLoader):
             download_file(url, self.model_file)
 
     def load_model(self):
-        from msclap import CLAP
-        
-        self.model = CLAP(self.model_file, version = self.type, use_cuda=self.device == torch.device('cuda'))
+        self.model = msclap.CLAP(self.model_file, version = self.type, use_cuda=self.device == torch.device('cuda'))
         #self.model.to(self.device)
 
     def _get_embedding(self, audio: np.ndarray) -> torch.Tensor:
