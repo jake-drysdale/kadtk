@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from turtle import st
 from typing import Literal, Optional, Union
+from packaging import version
 
 import librosa
 import numpy as np
@@ -16,7 +17,7 @@ import torch.nn.functional as F
 from hypy_utils.downloader import download_file
 from torch import nn
 
-from .models import panns
+from .models import panns, msclap
 from .utils import chunk_np_array
 
 log = logging.getLogger(__name__)
@@ -165,7 +166,7 @@ class PANNsModel(ModelLoader):
         else:
             raise ValueError(f"Unexpected variant of PANNs model: {self.variant}.")
         
-        state_dict = torch.load(self.model_file)
+        state_dict = torch.load(self.model_file, weights_only=False)
         self.model.load_state_dict(state_dict["model"])
         self.model.eval()
         self.model.to(self.device)
@@ -394,13 +395,17 @@ class CLAPLaionModel(ModelLoader):
             download_file(url, self.model_file)
             
         # Patch the model file to remove position_ids (will raise an error otherwise)
-        self.patch_model_430(self.model_file)
+        import transformers
+        import laion_clap
+        if version.parse(transformers.__version__) >= version.parse("4.31.0") \
+            and version.parse(laion_clap.__version__) < version.parse("1.1.6"): 
+            self.patch_model_430(self.model_file)
 
     def patch_model_430(self, file: Path):
         """
         Patch the model file to remove position_ids (will raise an error otherwise)
         This is a new issue after the transformers 4.30.0 update
-        Please refer to https://github.com/LAION-AI/CLAP/issues/127
+        Please refer to https://github.com/LAION-AI/CLAP/issues/127 and https://github.com/LAION-AI/CLAP/pull/118
         """
         # Create a "patched" file when patching is done
         patched = file.parent / f"{file.name}.patched.430"
@@ -411,7 +416,7 @@ class CLAPLaionModel(ModelLoader):
         log.warning("Patching LAION-CLAP's model checkpoints")
         
         # Load the checkpoint from the given path
-        checkpoint = torch.load(file, map_location="cpu")
+        checkpoint = torch.load(file, map_location="cpu", weights_only=False)
 
         # Extract the state_dict from the checkpoint
         if isinstance(checkpoint, dict) and "state_dict" in checkpoint:
@@ -539,9 +544,7 @@ class CLAPModel(ModelLoader):
             download_file(url, self.model_file)
 
     def load_model(self):
-        from msclap import CLAP
-        
-        self.model = CLAP(self.model_file, version = self.type, use_cuda=self.device == torch.device('cuda'))
+        self.model = msclap.CLAP(self.model_file, version = self.type, use_cuda=self.device == torch.device('cuda'))
         #self.model.to(self.device)
 
     def _get_embedding(self, audio: np.ndarray) -> torch.Tensor:

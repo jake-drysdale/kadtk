@@ -16,7 +16,7 @@ from .utils import find_sox_formats, get_cache_embedding_path
 
 sox_path = os.environ.get('SOX_PATH', 'sox')
 ffmpeg_path = os.environ.get('FFMPEG_PATH', 'ffmpeg')
-TORCHAUDIO_RESAMPLING = False
+TORCHAUDIO_RESAMPLING = True
 
 if not(TORCHAUDIO_RESAMPLING):
     if not shutil.which(sox_path):

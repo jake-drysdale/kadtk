@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Union
+import time
 
 from hypy_utils.logging_utils import setup_logger
 

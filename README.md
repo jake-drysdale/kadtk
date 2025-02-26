@@ -1,29 +1,32 @@
 # Kernel Audio Distance Toolkit
 The Kernel Audio Distance Toolkit (KADTK) provides an efficient and standardized implementation of Kernel Audio Distance (KAD)—a distribution-free, unbiased, and computationally efficient metric for evaluating generative audio.
 
+[![arXiv](https://img.shields.io/badge/arXiv-2502.15602-brightgreen.svg?style=flat-square)](https://arxiv.org/abs/2502.15602)
+
 ## 1. Installation
 
-To use the KAD toolkit, you must first install it. This library is created and tested on Python 3.10 on Linux but should work on Python >3.9.
+To use the KAD toolkit, you must first install it. This library is created and tested on Python 3.10 on Linux but should work on Python >=3.9,<3.12.
 
 ### 1.1 Install
-To install the required libraries, run:
-```sh
-poetry install
-```
+Requirement: Install torch [here](https://pytorch.org/) (for [previous versions](https://pytorch.org/get-started/previous-versions/)); only torch >=2.1,<2.6 officially supported.
 
-If you gets CUDA related error, ensure your device is GPU-compatible and install the necessary software for CUDA support.
-Only pytorch~=2.1.x officially supported.
+To install kadtk package, run:
+```sh
+pip install git+https://github.com/YoonjinXD/kadtk.git
+```
+(to reproduce our exact tested environment, ```pip install poetry==2.0.1 && poetry install && pip install -e .```)
+
 
 ### 1.2 Troubleshooting
-- if scipy causes some error, reinstall scipy: pip uninstall scipy && pip install scipy==1.11.2
-- if charset causes some error, (re)install chardet: pip install chardet
-- if CUDA causes some error, ensure your device is GPU-compatible and install the necessary software for CUDA support. Only pytorch~=2.1.x officially supported.
+- if scipy causes some error, reinstall scipy: *pip uninstall scipy && pip install scipy==1.11.2*
+- if charset causes some error, (re)install chardet: *pip install chardet*
+- if CUDA causes some error, ensure your device is GPU-compatible and install the necessary software for CUDA support.
 
 
 ## 2. Usage
-The toolkit provides a CLI command for computing KAD scores. It automatically extracts target embeddings and computes the KAD score between your generated audio files and an evaluation dataset.
+The toolkit provides a CLI command for computing KAD scores. It automatically extracts embeddings and computes the KAD score between your reference set (e.g. ground truth) and target evaluation set (e.g. generated audio).
 ```sh
-kadtk {model_name} {target-set dir} {evaluation-set dir}
+kadtk {model_name} {reference-set dir} {target-set dir}
 ```
 
 (Enable Options)
@@ -36,10 +39,10 @@ kadtk {model_name} {target-set dir} {evaluation-set dir}
 
 (Examples)
 ```sh
-kadtk panns-wavegram-logmel /test_samples/generated_samples /test_samples/dcase2023_eval
-kadtk vggish /test_samples/generated_samples /test_samples/dcase2023_eval --fad # it will calculate FAD instead of KAD
-kadtk passt-fsd50k /test_samples/generated_samples /test_samples/dcase2023_eval --indiv scores.csv # it will save indivisual sample-wise scores in scores.csv
-kadtk-embeds -m vggish panns-wavegram-logmel -d /test_samples/generated_samples /test_samples/dcase2023_eval # will only save each embeddings
+kadtk panns-wavegram-logmel ./test_samples/dcase2023_eval ./test_samples/generated_samples
+kadtk vggish ./test_samples/dcase2023_eval ./test_samples/generated_samples --fad # it will calculate FAD instead of KAD
+kadtk passt-fsd50k ./test_samples/dcase2023_eval ./test_samples/generated_samples --indiv scores.csv # it will save indivisual sample-wise scores in scores.csv
+kadtk-embeds -m vggish panns-wavegram-logmel -d ./test_samples/dcase2023_eval ./test_samples/generated_samples # will only save each embeddings
 
 ```
 
@@ -67,13 +70,22 @@ kadtk-embeds -m vggish panns-wavegram-logmel -d /test_samples/generated_samples 
 
 Optionally, you can install dependencies that add additional embedding support. They are:
 
-* PANNS(updated): `pip install git+https://github.com/DCASE2024-Task7-Sound-Scene-Synthesis/fadtk.git`
 * CDPAM: `pip install cdpam`
 * DAC: `pip install descript-audio-codec==1.0.0`
 
 
 ## 4. Citation, Acknowledgments and Licenses
+```latex
+@article{kad,
+    author={Chung, Yoonjin and Eu, Pilsun and Lee, Junwon and Choi, Keunwoo and Nam, Juhan and Chon, Ben Sangbae},
+    title={KAD: No More FAD! An Effective and Efficient Evaluation Metric for Audio Generation}, 
+    journal = {arXiv:2502.15602},
+    url = {https://arxiv.org/abs/2502.15602},
+    year = {2025}
+}
+```
 
+We sincerely thank the authors of the following papers for sharing the code as open source:
 ```latex
 @article{fad_embeddings,
     author = {Tailleur, Modan and Lee, Junwon and Lagrange, Mathieu and Choi, Keunwoo and Heller, Laurie M. and Imoto, Keisuke and Okamoto, Yuki},
