@@ -99,7 +99,7 @@ def calculate_mmd(
     xy = x @ y.T
     d2_xy = x_sqnorms.unsqueeze(1) + y_sqnorms.unsqueeze(0) - 2 * xy # shape (m, n)
     k_xy = kernel(d2_xy)
-    k_xy_mean = k_xy.mean() / (n * m)
+    k_xy_mean = k_xy.mean()
     
     # Compute MMD
     result = k_xx_mean + k_yy_mean - 2 * k_xy_mean
