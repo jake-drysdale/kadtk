@@ -13,7 +13,7 @@ from kadtk.emb_loader import EmbeddingLoader
 from kadtk.model_loader import ModelLoader
 from .utils import *
 
-SCALE_FACTOR = 1000
+SCALE_FACTOR = 100
 
 def calculate_mmd(
     x: torch.Tensor,
