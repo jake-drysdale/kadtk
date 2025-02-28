@@ -39,11 +39,10 @@ kadtk {model_name} {reference-set dir} {target-set dir}
 
 (Examples)
 ```sh
-kadtk panns-wavegram-logmel ./test_samples/dcase2023_eval ./test_samples/generated_samples
-kadtk vggish ./test_samples/dcase2023_eval ./test_samples/generated_samples --fad # it will calculate FAD instead of KAD
-kadtk passt-fsd50k ./test_samples/dcase2023_eval ./test_samples/generated_samples --indiv scores.csv # it will save indivisual sample-wise scores in scores.csv
-kadtk-embeds -m vggish panns-wavegram-logmel -d ./test_samples/dcase2023_eval ./test_samples/generated_samples # will only save each embeddings
-
+kadtk panns-wavegram-logmel {reference-set dir} {target-set dir} # will calulcate kad btw 2 dirs(each dirs should contains wav files)
+kadtk vggish {reference-set dir} {target-set dir} --fad # will calculate FAD instead of KAD
+kadtk passt-fsd50k {reference-set dir} {target-set dir} --csv scores.csv # will save results in scores.csv
+kadtk-embeds -m wavlm-base -d {reference-set dir} {target-set dir} # will only save each embeddings
 ```
 
 ## 3. Supported Models

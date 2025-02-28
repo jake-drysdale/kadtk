@@ -23,8 +23,6 @@ def main():
                         help="The embedding model to use")
     parser.add_argument('baseline', type=str, help="The baseline dataset")
     parser.add_argument('eval', type=str, help="The dataset to evaluate against")
-    parser.add_argument('csv', type=str, nargs='?',
-                        help="Optional CSV file to append results. If omitted, results will be printed.")
 
     # Alternative metric selection
     parser.add_argument('--fad', action='store_true',
@@ -47,6 +45,8 @@ def main():
                         help="Length of audio clips in seconds.")
     parser.add_argument('--device', type=str, default='cuda',
                         help="Device to use for score calculation.")
+    parser.add_argument('--csv', type=str, nargs='?',
+                        help="Optional CSV file to append results. If omitted, results will be printed.")
     args = parser.parse_args()
 
     baseline = args.baseline
