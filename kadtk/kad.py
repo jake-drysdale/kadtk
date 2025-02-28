@@ -193,8 +193,11 @@ class KernelAudioDistance:
         :param bandwidth: Bandwidth for the Gaussian kernel
         """
         self.logger.info(f"Calculating KAD-inf for {self.ml.name}...")
-        # 1. Load background embeddings
+        # Load background embeddings
         embd_bg = self.emb_loader.load_embeddings(baseline)
+        bg_cache_dir = self.get_cache_dir(baseline)
+        cache_dirs = (bg_cache_dir, None)
+            
         # If all of the embedding files end in .npy, we can load them directly
         if all([f.suffix == '.npy' for f in eval_files]):
             embeds = [np.load(f) for f in eval_files]
@@ -213,13 +216,11 @@ class KernelAudioDistance:
             # Select n feature frames randomly (with replacement)
             indices = np.random.choice(embeds.shape[0], size=n, replace=True)
             embds_eval = embeds[indices]
-            
-            bg_cache_dir = self.get_cache_dir(baseline)
-            cache_dirs = (bg_cache_dir, None)
 
             embd_bg = torch.tensor(embd_bg)
             embds_eval = torch.tensor(embds_eval)
             score = calc_kernel_audio_distance(embd_bg, embds_eval, cache_dirs, self.device, self.bandwidth)
+            score = score.item()
 
             # Add to results
             results.append((n, score))
@@ -246,12 +247,12 @@ class KernelAudioDistance:
         """
         if isinstance(csv_name, str):
             csv = Path(csv_name)
-            csv = Path('data') / f'kad-individual' / self.ml.name / csv_name
+            csv = Path('data') / f'result' / self.ml.name / csv_name
             if csv.exists():
                 self.logger.info(f"CSV file {csv} already exists, exiting...")
                 return csv
         else:
-            csv = Path('data') / f'kad-individual' / self.ml.name / "result.csv"
+            csv = Path('data') / f'result' / self.ml.name / "kad-indiv.csv"
         
         bg_cache_dir = self.get_cache_dir(baseline)
         cache_dirs = (bg_cache_dir, None)
@@ -266,7 +267,8 @@ class KernelAudioDistance:
                 # Calculate KAD for individual songs
                 embd = self.emb_loader.read_embedding_file(f)
                 embd = torch.tensor(embd)
-                return calc_kernel_audio_distance(embd_bg, embd, cache_dirs, self.device, self.bandwidth)
+                score = calc_kernel_audio_distance(embd_bg, embd, cache_dirs, self.device, self.bandwidth)
+                return score.item()
 
             except Exception as e:
                 traceback.print_exc()

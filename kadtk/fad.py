@@ -77,7 +77,7 @@ def calc_frechet_distance(
     covmean_sqrtm, _ = scipy.linalg.sqrtm(cov_prod_np, disp=False)
     if np.iscomplexobj(covmean_sqrtm):
         covmean_sqrtm = covmean_sqrtm.real  # Ensure real values
-    tr_covmean = torch.from_numpy(np.trace(covmean_sqrtm)).to(device=device, dtype=precision)
+    tr_covmean = torch.tensor(np.trace(covmean_sqrtm), dtype=precision, device=device)
         
     return diffnorm_sq + torch.trace(cov_x) + torch.trace(cov_y) - 2*tr_covmean
 
@@ -141,12 +141,10 @@ class FrechetAudioDistance:
         """
         self.logger.info(f"Calculating FAD-inf for {self.ml.name}...")
 
-        # Get baseline cache directory
-        bg_cache_dir = self.get_cache_dir(baseline)
-
         # Load background embeddings
         embd_bg = self.emb_loader.load_embeddings(baseline)
-        embd_bg = torch.tensor(embd_bg)
+        bg_cache_dir = self.get_cache_dir(baseline)
+        cache_dirs = (bg_cache_dir, None)
         
         # If all of the embedding files end in .npy, we can load them directly
         if all([f.suffix == '.npy' for f in eval_files]):
@@ -163,12 +161,15 @@ class FrechetAudioDistance:
         for n in tq(ns, desc="Calculating FAD-inf"):
             # Select n feature frames randomly (with replacement)
             indices = np.random.choice(embeds.shape[0], size=n, replace=True)
-            embds_eval = torch.tensor(embeds[indices])
+            embds_eval = embeds[indices]
             
-            fad_score = calc_frechet_distance(embd_bg, embds_eval, cache_dirs=(bg_cache_dir, None), device=self.device,)
+            embd_bg = torch.tensor(embd_bg)
+            embds_eval = torch.tensor(embds_eval)
+            score = calc_frechet_distance(embd_bg, embds_eval, cache_dirs=cache_dirs, device=self.device)
+            score = score.item()
 
             # Add to results
-            results.append([n, fad_score])
+            results.append([n, score])
 
         # Compute FAD-inf based on linear regression of 1/n
         ys = np.array(results)
@@ -190,15 +191,18 @@ class FrechetAudioDistance:
         :param csv_name: Name of the csv file to write the results to
         :return: Path to the csv file
         """
-        csv = Path(csv_name)
         if isinstance(csv_name, str):
-            csv = Path('data') / f'fad-individual' / self.ml.name / csv_name
-        if csv.exists():
-            self.logger.info(f"CSV file {csv} already exists, exiting...")
-            return csv
+            csv = Path(csv_name)
+            csv = Path('data') / f'result' / self.ml.name / csv_name
+            if csv.exists():
+                self.logger.info(f"CSV file {csv} already exists, exiting...")
+                return csv
+        else:
+            csv = Path('data') / f'result' / self.ml.name / "fad-indiv.csv"
         
         # Get cache directory for baseline
         bg_cache_dir = self.get_cache_dir(baseline)
+        cache_dirs = (bg_cache_dir, None)
 
         # Load baseline embeddings
         embd_bg = self.emb_loader.load_embeddings(baseline)
@@ -210,8 +214,8 @@ class FrechetAudioDistance:
                 # Calculate FAD for individual songs
                 embd = self.emb_loader.read_embedding_file(f)
                 embd = torch.tensor(embd)
-                score = calc_frechet_distance(embd_bg, embd, cache_dirs=(bg_cache_dir, None), device=self.device)
-                return score
+                score = calc_frechet_distance(embd_bg, embd, cache_dirs=cache_dirs, device=self.device)
+                return score.item()
 
             except Exception as e:
                 traceback.print_exc()
