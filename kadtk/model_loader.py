@@ -321,9 +321,8 @@ class DACModel(ModelLoader):
             emb.append(e1)
 
         emb = torch.cat(emb, dim=0)
-        print(emb.shape, f'(computing finished in {(time.time() - stime) * 1000:.0f}ms)')
-        
         emb = self.postprocess_resoultion(audio, emb)
+        print(emb.shape)
         return emb
 
     def load_wav(self, wav_file: Path) -> np.ndarray:
@@ -657,6 +656,7 @@ class HuBERTModel(ModelLoader):
             out = self.model(**inputs, output_hidden_states=True)
             out = torch.stack(out.hidden_states).squeeze()  # [13 or 25 layers, timeframes, 768 or 1024]
             out = out[self.layer]  # [timeframes, 768 or 1024]
+            out = self.postprocess_resoultion(audio, out)
 
         return out
 
@@ -730,6 +730,7 @@ class WhisperModel(ModelLoader):
         inputs = self.feature_extractor(audio, sampling_rate=self.sr, return_tensors="pt").to(self.device)
         input_features = inputs.input_features
         decoder_input_ids = torch.tensor([[1, 1]]) * self.model.config.decoder_start_token_id
+        decoder_input_ids = decoder_input_ids.to(self.device)
         with torch.no_grad():
             out = self.model(input_features, decoder_input_ids=decoder_input_ids).last_hidden_state # [1, timeframes, 512]
             out = out.squeeze() # [timeframes, 384 or 512 or 768 or 1024 or 1280]
