@@ -12,8 +12,9 @@ warnings.filterwarnings("ignore")
 
 from .emb_loader import EmbeddingLoader
 from .model_loader import ModelLoader
-from .utils import *
 
+from pathlib import Path
+PathLike = Union[str, Path]
 
 class FADInfResults(NamedTuple):
     score: float
