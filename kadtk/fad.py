@@ -140,8 +140,14 @@ class FrechetAudioDistance:
         :param raw: return raw results in addition to FAD-inf
         """
         self.logger.info(f"Calculating FAD-inf for {self.ml.name}...")
-        # 1. Load background embeddings
-        mu_base, cov_base = self.load_stats(baseline)
+
+        # Get baseline cache directory
+        bg_cache_dir = self.get_cache_dir(baseline)
+
+        # Load background embeddings
+        embd_bg = self.emb_loader.load_embeddings(baseline)
+        embd_bg = torch.tensor(embd_bg)
+        
         # If all of the embedding files end in .npy, we can load them directly
         if all([f.suffix == '.npy' for f in eval_files]):
             embeds = [np.load(f) for f in eval_files]
@@ -149,20 +155,17 @@ class FrechetAudioDistance:
         else:
             embeds = self.emb_loader._load_embeddings(eval_files, concat=True)
         
-        # Calculate maximum n
+        # Calculate maximum n and generate ns
         max_n = len(embeds)
-
-        # Generate list of ns to use
         ns = [int(n) for n in np.linspace(min_n, max_n, steps)]
         
         results = []
         for n in tq(ns, desc="Calculating FAD-inf"):
             # Select n feature frames randomly (with replacement)
             indices = np.random.choice(embeds.shape[0], size=n, replace=True)
-            embds_eval = embeds[indices]
+            embds_eval = torch.tensor(embeds[indices])
             
-            mu_eval, cov_eval = calc_embd_statistics(embds_eval)
-            fad_score = calc_frechet_distance(mu_base, cov_base, mu_eval, cov_eval)
+            fad_score = calc_frechet_distance(embd_bg, embds_eval, cache_dirs=(bg_cache_dir, None), device=self.device,)
 
             # Add to results
             results.append([n, fad_score])
@@ -193,28 +196,33 @@ class FrechetAudioDistance:
         if csv.exists():
             self.logger.info(f"CSV file {csv} already exists, exiting...")
             return csv
+        
+        # Get cache directory for baseline
+        bg_cache_dir = self.get_cache_dir(baseline)
 
-        # 1. Load background embeddings
-        mu, cov = self.load_stats(baseline)
+        # Load baseline embeddings
+        embd_bg = self.emb_loader.load_embeddings(baseline)
+        embd_bg = torch.tensor(embd_bg)
 
-        # 2. Define helper function for calculating z score
+        # Define helper function for calculating z score
         def _find_z_helper(f):
             try:
                 # Calculate FAD for individual songs
                 embd = self.emb_loader.read_embedding_file(f)
-                mu_eval, cov_eval = calc_embd_statistics(embd)
-                return calc_frechet_distance(mu, cov, mu_eval, cov_eval)
+                embd = torch.tensor(embd)
+                score = calc_frechet_distance(embd_bg, embd, cache_dirs=(bg_cache_dir, None), device=self.device)
+                return score
 
             except Exception as e:
                 traceback.print_exc()
                 self.logger.error(f"An error occurred calculating individual FAD using model {self.ml.name} on file {f}")
                 self.logger.error(e)
 
-        # 3. Calculate z score for each eval file
+        # Calculate z score for each eval file
         _files = list(Path(eval_dir).glob("*.*"))
         scores = tmap(_find_z_helper, _files, desc=f"Calculating scores", max_workers=self.audio_load_worker)
 
-        # 4. Write the sorted z scores to csv
+        # Write the sorted z scores to csv
         pairs = list(zip(_files, scores))
         pairs = [p for p in pairs if p[1] is not None]
         pairs = sorted(pairs, key=lambda x: np.abs(x[1]))
