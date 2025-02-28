@@ -27,19 +27,18 @@ def calc_frechet_distance(
     cache_dirs: tuple[Path, Path],
     device: str, 
     precision=torch.float32, 
-    eps=1e-6
 ) -> torch.Tensor:
     """FAD implementation in PyTorch.
 
     Args:
-      x: The first set of embeddings of shape (n, embedding_dim).
-      y: The second set of embeddings of shape (n, embedding_dim).
-      cache_dirs: Directory to cache kernel statistics.
-      device: Device to run the calculation on.
-      precision: Type setting for matrix calculation precision.
-      eps: Small value for numerical stability.
+        x: The first set of embeddings of shape (n, embedding_dim).
+        y: The second set of embeddings of shape (n, embedding_dim).
+        cache_dirs: Directories to cache embedding statistics.
+        device: Device to run the calculation on.
+        precision: Type setting for matrix calculation precision.
+
     Returns:
-      The FAD between x and y embedding sets.
+        The FAD between x and y embedding sets.
     """
     # Load x statistics
     if cache_dirs[0] is not None and cache_dirs[0].exists():
@@ -78,7 +77,7 @@ def calc_frechet_distance(
     covmean_sqrtm, _ = scipy.linalg.sqrtm(cov_prod_np, disp=False)
     if np.iscomplexobj(covmean_sqrtm):
         covmean_sqrtm = covmean_sqrtm.real  # Ensure real values
-    tr_covmean = torch.tensor(np.trace(covmean_sqrtm), dtype=precision, device=device)
+    tr_covmean = torch.from_numpy(np.trace(covmean_sqrtm)).to(device=device, dtype=precision)
         
     return diffnorm_sq + torch.trace(cov_x) + torch.trace(cov_y) - 2*tr_covmean
 
