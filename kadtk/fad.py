@@ -21,17 +21,6 @@ class FADInfResults(NamedTuple):
     r2: float
     points: list[tuple[int, float]]
 
-def qr_eigval(A:torch.Tensor, num_iterations=1000, tol=1e-8):
-    A_k = A.clone()
-    for _ in range(num_iterations):
-        Q, R = torch.linalg.qr(A_k)
-        A_k = R @ Q
-        off_diagonal_norm = torch.norm(A_k - torch.diag(torch.diag(A_k)))
-        if off_diagonal_norm < tol:
-            break
-    eigenvalues = torch.diag(A_k)
-    return eigenvalues
-
 def calc_frechet_distance(
     x: torch.Tensor, 
     y: torch.Tensor,
@@ -45,9 +34,9 @@ def calc_frechet_distance(
     Args:
       x: The first set of embeddings of shape (n, embedding_dim).
       y: The second set of embeddings of shape (n, embedding_dim).
-      cache_dir: Directory to cache kernel statistics.
+      cache_dirs: Directory to cache kernel statistics.
+      device: Device to run the calculation on.
       precision: Type setting for matrix calculation precision.
-      qr_iter: Number of iterations for QR decomposition. Defaults to eigendecomposition if not given.
       eps: Small value for numerical stability.
     Returns:
       The FAD between x and y embedding sets.
@@ -83,10 +72,6 @@ def calc_frechet_distance(
     # Calculate mean distance term
     mu_diff = mu_x-mu_y
     diffnorm_sq = mu_diff@mu_diff
-    
-    # Calculate covariance matrices
-    cov_prod = cov_x @ cov_y
-    cov_prod.diagonal().add_(eps) # numerical stability
 
     # Calculate trace term
     cov_prod_np = cov_x.cpu().numpy().dot(cov_y.cpu().numpy())
