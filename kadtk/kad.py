@@ -15,7 +15,7 @@ from .utils import *
 
 SCALE_FACTOR = 100
 
-def calculate_mmd(
+def calc_kernel_audio_distance(
     x: torch.Tensor,
     y: torch.Tensor,
     cache_dirs: tuple[Path, Path],
@@ -25,20 +25,20 @@ def calculate_mmd(
     precision=torch.float32,
     eps=1e-8
 ) -> torch.Tensor:
-    """Compute the Maximum Mean Discrepancy (MMD) between two samples using PyTorch.
+    """
+    Compute the Kernel Audio Distance (KAD) between two samples using PyTorch.
 
     Args:
-        x: The first set of embeddings with shape (m, embedding_dim).
-        y: The second set of embeddings with shape (n, embedding_dim).
-        cache_dir: Directory to cache kernel statistics.
+        x: The first set of embeddings of shape (m, embedding_dim).
+        y: The second set of embeddings of shape (n, embedding_dim).
+        cache_dirs: Directories to cache kernel statistics.
         bandwidth: The bandwidth value for the Gaussian RBF kernel.
-        unbiased: When True, use the unbiased estimator of the MMD.
         kernel: Kernel function to use ('gaussian', 'iq', 'imq').
-        precision: Data type for computation.
+        precision: Type setting for matrix calculation precision.
         eps: Small value to prevent division by zero.
 
     Returns:
-        The MMD distance between x and y.
+        The KAD between x and y embedding sets.
     """
     # Ensure x and y are of the correct precision
     x = x.to(dtype=precision, device=device)
@@ -52,11 +52,11 @@ def calculate_mmd(
     
     # Define kernel functions
     gamma = 1 / (2 * bandwidth**2 + eps)
-    if kernel == 'gaussian':
+    if kernel == 'gaussian':    # Gaussian Kernel
         kernel = lambda a: torch.exp(-gamma * a)
-    elif kernel == 'iq':
+    elif kernel == 'iq':        # Inverse Quadratic Kernel
         kernel = lambda a: 1 / (1 + gamma * a)
-    elif kernel == 'imq':
+    elif kernel == 'imq':       # Inverse Multiquadric Kernel
         kernel = lambda a: 1 / torch.sqrt(1 + gamma * a)
     else:
         raise ValueError("Invalid kernel type. Valid kernels: 'gaussian', 'iq', 'imq'")
@@ -107,14 +107,14 @@ def calculate_mmd(
 
 def median_pairwise_distance(x, subsample=None):
     """
-    Compute the median pairwise distance between points in X.
+    Compute the median pairwise distance of an embedding set.
     
     Args:
-    X: torch.Tensor of shape (n_samples, embedding_dim)
+    x: torch.Tensor of shape (n_samples, embedding_dim)
     subsample: int, number of random pairs to consider (optional)
     
     Returns:
-    median_distance: float
+    The median pairwise distance between points in x.
     """
     x = torch.tensor(x, dtype=torch.float32)
     n_samples = x.shape[0]
@@ -179,7 +179,7 @@ class KernelAudioDistance:
         
         embd_bg = torch.tensor(embd_bg)
         embd_eval = torch.tensor(embd_eval)
-        return calculate_mmd(embd_bg, embd_eval, cache_dirs, self.device, self.bandwidth)
+        return calc_kernel_audio_distance(embd_bg, embd_eval, cache_dirs, self.device, self.bandwidth)
     
     def score_inf(self, baseline: PathLike, eval_files: list[Path], steps: int=25, min_n=500, raw: bool=False):
         """
@@ -219,7 +219,7 @@ class KernelAudioDistance:
 
             embd_bg = torch.tensor(embd_bg)
             embds_eval = torch.tensor(embds_eval)
-            score = calculate_mmd(embd_bg, embds_eval, cache_dirs, self.device, self.bandwidth)
+            score = calc_kernel_audio_distance(embd_bg, embds_eval, cache_dirs, self.device, self.bandwidth)
 
             # Add to results
             results.append((n, score))
@@ -261,12 +261,12 @@ class KernelAudioDistance:
         embd_bg = torch.tensor(embd_bg)
 
         # 2. Define helper function for calculating z score
-        def _find_mmd_helper(f):
+        def _find_kad_helper(f):
             try:
                 # Calculate KAD for individual songs
                 embd = self.emb_loader.read_embedding_file(f)
                 embd = torch.tensor(embd)
-                return calculate_mmd(embd_bg, embd, cache_dirs, self.device, self.bandwidth)
+                return calc_kernel_audio_distance(embd_bg, embd, cache_dirs, self.device, self.bandwidth)
 
             except Exception as e:
                 traceback.print_exc()
@@ -275,7 +275,7 @@ class KernelAudioDistance:
         
         # 3. Calculate MMD score for each eval file
         _files = list(Path(eval_dir).glob("*.*"))
-        scores = tmap(_find_mmd_helper, _files, desc=f"Calculating scores", max_workers=self.audio_load_worker)
+        scores = tmap(_find_kad_helper, _files, desc=f"Calculating scores", max_workers=self.audio_load_worker)
 
         # 4. Write the sorted scores to csv
         pairs = list(zip(_files, scores))
