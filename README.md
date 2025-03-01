@@ -10,11 +10,20 @@ To use the KAD toolkit, you must first install it. This library is created and t
 ### 1.1 Install
 Requirement: Install torch [here](https://pytorch.org/) (for [previous versions](https://pytorch.org/get-started/previous-versions/)); only torch >=2.1,<2.6 officially supported.
 
-To install kadtk package, run:
+To install kad toolkit, run:
 ```sh
-pip install git+https://github.com/YoonjinXD/kadtk.git
+pip install kadtk
 ```
-(to reproduce our exact tested environment, ```pip install poetry==2.0.1 && poetry install && pip install -e .```)
+
+(to reproduce our exact tested environment, 
+```sh
+git clone https://github.com/YoonjinXD/kadtk.git && 
+cd kadtk && 
+pip install poetry==2.0.1 && 
+poetry install && 
+pip install -e .
+```
+)
 
 
 ### 1.2 Troubleshooting
