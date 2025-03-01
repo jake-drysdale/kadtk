@@ -2,7 +2,7 @@
 name = "kadtk"
 version = "1.0.0"
 description = "A toolkit library for Kernel Audio Distance."
-authors = ["Yoonjin Chung <anazzz1685@gmail.com>", "Phillip", "Junwon"]
+authors = ["Yoonjin Chung <anazzz1685@gmail.com>", "Phisun Eu", "Junwon Lee", "Keunwoo Choi", "Juhan Nam", "Ben Sangbae Chon"]
 readme = "README.md"
 homepage = "https://github.com/YoonjinXD/kadtk"
 repository = "https://github.com/YoonjinXD/kadtk"
