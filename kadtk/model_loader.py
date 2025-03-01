@@ -1,13 +1,12 @@
-from email.policy import strict
 import importlib.util
 import logging
 import math
 import os
 from abc import ABC, abstractmethod
+from email.policy import strict
 from pathlib import Path
 from turtle import st
 from typing import Literal, Optional, Union
-from packaging import version
 
 import librosa
 import numpy as np
@@ -15,10 +14,10 @@ import soundfile
 import torch
 import torch.nn.functional as F
 from hypy_utils.downloader import download_file
+from packaging import version
 from torch import nn
 
-from .models import panns, msclap
-from .utils import chunk_np_array
+from kadtk.models import msclap, panns
 
 log = logging.getLogger(__name__)
 
@@ -222,7 +221,6 @@ class EncodecEmbModel(ModelLoader):
 
         # Concatenate
         encoded_frames = torch.cat(encoded_frames, dim=0) # [timeframes, 128]
-        encoded_frames = self.postprocess_resoultion(audio, encoded_frames)
         return encoded_frames
 
     def _get_frame(self, audio: np.ndarray) -> np.ndarray:
@@ -234,6 +232,7 @@ class EncodecEmbModel(ModelLoader):
             emb = self.model.encoder(audio.to(self.device)) # [1, 128, timeframes]
             emb = emb[0] # [128, timeframes]
             emb = emb.transpose(0, 1) # [timeframes, 128]
+            emb = self.postprocess_resoultion(audio, emb)
             return emb
     
     def load_wav(self, wav_file: Path) -> np.ndarray:
@@ -263,6 +262,13 @@ class EncodecEmbModel(ModelLoader):
 
             return audio.cpu().numpy()
 
+    def postprocess_resoultion(self, audio: np.ndarray, emb: np.ndarray, pooling_resolution_sec: int = 1) -> np.ndarray:
+        audio_dur = audio.shape[2] / self.sr
+        pooling_resoultion = audio_dur / pooling_resolution_sec
+        stride = int(emb.shape[0] / pooling_resoultion)
+        emb = emb.unfold(0, stride, stride).mean(-1)
+        return emb
+
 
 class DACModel(ModelLoader):
     """
@@ -271,7 +277,8 @@ class DACModel(ModelLoader):
     pip install descript-audio-codec
     """
     def __init__(self, audio_len: Optional[Union[float, int]] = None):
-        super().__init__("dac-44kHz", 1024, 44100, audio_len=audio_len)
+        self.sr = 44100
+        super().__init__("dac-44kHz", 1024, self.sr, audio_len=audio_len)
 
     def load_model(self):
         from dac.utils import load_model
@@ -322,7 +329,6 @@ class DACModel(ModelLoader):
 
         emb = torch.cat(emb, dim=0)
         emb = self.postprocess_resoultion(audio, emb)
-        print(emb.shape)
         return emb
 
     def load_wav(self, wav_file: Path) -> np.ndarray:
@@ -335,6 +341,13 @@ class DACModel(ModelLoader):
                                 + f"\n\t- {wav_file}")
         
         return wav
+
+    def postprocess_resoultion(self, audio: np.ndarray, emb: np.ndarray, pooling_resolution_sec: int = 1) -> np.ndarray:
+        audio_dur = audio.shape[2] / self.sr
+        pooling_resoultion = audio_dur / pooling_resolution_sec
+        stride = int(emb.shape[0] / pooling_resoultion)
+        emb = emb.unfold(0, stride, stride).mean(-1)
+        return emb
 
 
 class MERTModel(ModelLoader):
@@ -394,9 +407,10 @@ class CLAPLaionModel(ModelLoader):
             download_file(url, self.model_file)
             
         # Patch the model file to remove position_ids (will raise an error otherwise)
-        import transformers
-        import laion_clap
         from importlib.metadata import version as metaversion
+
+        import laion_clap
+        import transformers
         if version.parse(transformers.__version__) >= version.parse("4.31.0") \
             and version.parse(metaversion("laion_clap")) < version.parse("1.1.6"): 
             self.patch_model_430(self.model_file)
@@ -880,7 +894,6 @@ def get_all_models(audio_len: Optional[Union[float, int]] = None) -> list[ModelL
         VGGishModel(audio_len=audio_len), 
         PANNsModel('cnn14-32k',audio_len=audio_len), PANNsModel('cnn14-16k',audio_len=audio_len),
         PANNsModel('wavegram-logmel',audio_len=audio_len),
-        # PANNs1sModel('32k',audio_len=audio_len), PANNs1sModel('16k',audio_len=audio_len),
         *(MERTModel(layer=v, audio_len=audio_len) for v in range(1, 13)),
         EncodecEmbModel('24k', audio_len=audio_len), EncodecEmbModel('48k', audio_len=audio_len), 
         DACModel(audio_len=audio_len),
