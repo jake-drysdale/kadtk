@@ -11,8 +11,8 @@ import torch
 import torchaudio
 from hypy_utils.tqdm_utils import tmap, tq
 
-from .model_loader import ModelLoader
-from .utils import find_sox_formats, get_cache_embedding_path
+from kadtk.model_loader import ModelLoader
+from kadtk.utils import find_sox_formats, get_cache_embedding_path
 
 sox_path = os.environ.get('SOX_PATH', 'sox')
 ffmpeg_path = os.environ.get('FFMPEG_PATH', 'ffmpeg')

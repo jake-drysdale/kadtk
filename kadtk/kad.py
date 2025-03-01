@@ -1,18 +1,17 @@
 import traceback
+import warnings
 from pathlib import Path
 from typing import NamedTuple, Union
-
 import numpy as np
 import torch
 from hypy_utils import write
 from hypy_utils.tqdm_utils import tmap, tq
-import warnings
-warnings.filterwarnings("ignore")
 
 from kadtk.emb_loader import EmbeddingLoader
 from kadtk.model_loader import ModelLoader
-from .utils import *
 
+warnings.filterwarnings("ignore")
+PathLike = Union[str, Path]
 SCALE_FACTOR = 100
 
 def calc_kernel_audio_distance(

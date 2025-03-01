@@ -1,14 +1,14 @@
+import time
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Union
-import time
 
 from hypy_utils.logging_utils import setup_logger
 
-from .emb_loader import cache_embedding_files
-from .fad import FrechetAudioDistance
-from .kad import KernelAudioDistance
-from .model_loader import get_all_models
+from kadtk.emb_loader import cache_embedding_files
+from kadtk.fad import FrechetAudioDistance
+from kadtk.kad import KernelAudioDistance
+from kadtk.model_loader import get_all_models
 
 
 def main():
@@ -65,6 +65,14 @@ def main():
     for d in [baseline, eval]:
         if not Path(d).is_dir(): raise ValueError(f"{d} is not a directory")
         cache_embedding_files(d, model, workers=args.workers, force_emb_encode=args.force_emb_encode)
+
+    # Remove stats cache if force-stats-calc
+    if args.force_stats_calc:
+        for d in [baseline, eval]:
+            cache_dir = Path(d).parent / f"{'fad' if args.fad else 'kernel'}_stats" / model.name
+            if cache_dir.exists():
+                shutil.rmtree(cache_dir)
+                logger.info(f"{cache_dir} is successfully removed.")
 
     # 2. Calculate the chosen metric
     if args.fad:
