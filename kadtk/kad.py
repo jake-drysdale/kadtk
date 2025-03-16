@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import NamedTuple, Union
 import numpy as np
 import torch
+import shutil
 from hypy_utils import write
 from hypy_utils.tqdm_utils import tmap, tq
 
@@ -153,14 +154,15 @@ class KernelAudioDistance:
         self.force_stats_calc = force_stats_calc
 
     def get_cache_dir(self, path: PathLike):
-        if self.force_stats_calc:
-            return None
-
         # Check cache stats
         path = Path(path)
         cache_dir = path / "kernel_stats" / self.ml.name
         if cache_dir.exists(): 
-            self.logger.info(f"Kernel statistics is already cached for {path}.")
+            if self.force_stats_calc:
+                self.logger.info(f"Force calculating kernel statistics for {path}.")
+                shutil.rmtree(cache_dir)
+            else:
+                self.logger.info(f"Kernel statistics is already cached for {path}.")
         return cache_dir
     
     def score(self, baseline: PathLike, eval: PathLike):

@@ -5,6 +5,7 @@ from typing import NamedTuple, Union
 import numpy as np
 import scipy.linalg
 import torch
+import shutil
 from hypy_utils import write
 from hypy_utils.tqdm_utils import tmap, tq
 from pathlib import Path
@@ -108,7 +109,11 @@ class FrechetAudioDistance:
         path = Path(path)
         cache_dir = path / "fad_stats" / self.ml.name
         if cache_dir.exists(): 
-            self.logger.info(f"FAD statistics is already cached for {path}.")
+            if self.force_stats_calc:
+                self.logger.info(f"Force recalculate FAD statistics for {path}.")
+                shutil.rmtree(cache_dir)
+            else:
+                self.logger.info(f"FAD statistics is already cached for {path}.")
         return cache_dir
 
     def score(self, baseline: PathLike, eval: PathLike):
