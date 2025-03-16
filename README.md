@@ -37,6 +37,11 @@ The toolkit provides a CLI command for computing KAD scores. It automatically ex
 ```sh
 kadtk {model_name} {reference-set dir} {target-set dir}
 ```
+Note that KAD:
+- outputs different value when you switch reference set & target set. This is because we use median heuristics on refernce set for the bandwidth of MMD. 
+- may output a negative value if there are too few samples, since we use a finite estimator of MMD.
+Refer to our paper for more details.
+Make sure the reference set is always the *ground truth* (e.g. Audiocaps or Clotho for text-to-audio), and target set is the outputs of neural models.
 
 (Enable Options)
 
@@ -93,7 +98,7 @@ Optionally, you can install dependencies that add additional embedding support. 
 }
 ```
 
-We sincerely thank the authors of the following papers for sharing the code as open source:
+We sincerely thank the authors of the following papers for sharing the code as open source: [fadtk](https://github.com/microsoft/fadtk) [fadtk with panns](https://github.com/DCASE2024-Task7-Sound-Scene-Synthesis/fadtk)
 ```latex
 @article{fad_embeddings,
     author = {Tailleur, Modan and Lee, Junwon and Lagrange, Mathieu and Choi, Keunwoo and Heller, Laurie M. and Imoto, Keisuke and Okamoto, Yuki},
