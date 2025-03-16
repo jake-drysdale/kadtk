@@ -37,11 +37,11 @@ The toolkit provides a CLI command for computing KAD scores. It automatically ex
 ```sh
 kadtk {model_name} {reference-set dir} {target-set dir}
 ```
-Note that KAD:
-- outputs different value when you switch reference set & target set. This is because we use median heuristics on refernce set for the bandwidth of MMD. 
-- may output a negative value if there are too few samples, since we use a finite estimator of MMD.
+Note that:
+- KAD generally has a different value when the reference set and the target set are switched, because the kernel bandwidth for the MMD is calculated as the median distance between the embeddings of the **reference set**. This is to ensure that the score takes on a consistent meaning even when the target set is changed.
+- KAD is based on an **unbiased, finite-sample** estimation of the MMD; it may take on negative values if there are too few samples and/or if the two embedding sets are very close in distribution.
 Refer to our paper for more details.
-Make sure the reference set is always the *ground truth* (e.g. Audiocaps or Clotho for text-to-audio), and target set is the outputs of neural models.
+Make sure that the reference set always contains the *ground truth* samples (e.g. Audiocaps or Clotho for text-to-audio), and that the target set contains the *generated* samples.
 
 (Enable Options)
 
