@@ -64,36 +64,36 @@ def calc_kernel_audio_distance(
     # Load x kernel statistics
     if cache_dirs[0] is not None and cache_dirs[0].exists():
         x_sqnorms = torch.tensor(np.load(cache_dirs[0] / "sqnorms.npy"), dtype=precision, device=device)
-        k_xx_mean = torch.tensor(np.load(cache_dirs[0] / "kernel_mean.npy"), dtype=precision, device=device)
+        d2_xx = torch.tensor(np.load(cache_dirs[0] / "d2.npy"), dtype=precision, device=device)
     else:
         xx = x @ x.T
         x_sqnorms = torch.diagonal(xx)
         d2_xx = x_sqnorms.unsqueeze(1) + x_sqnorms.unsqueeze(0) - 2 * xx # shape (m, m)
-        k_xx = kernel(d2_xx)
-        k_xx = k_xx - torch.diag(torch.diagonal(k_xx))
-        k_xx_mean = k_xx.sum() / (m * (m - 1))
-
         if cache_dirs[0] is not None:
             cache_dirs[0].mkdir(parents=True, exist_ok=True)
             np.save(cache_dirs[0] / "sqnorms.npy", x_sqnorms.cpu().numpy())
-            np.save(cache_dirs[0] / "kernel_mean.npy", k_xx_mean.cpu().numpy())
+            np.save(cache_dirs[0] / "d2.npy", d2_xx.cpu().numpy())
+            
+    k_xx = kernel(d2_xx)
+    k_xx = k_xx - torch.diag(torch.diagonal(k_xx))
+    k_xx_mean = k_xx.sum() / (m * (m - 1))
     
     # Load y kernel statistics
     if cache_dirs[1] is not None and cache_dirs[1].exists():
         y_sqnorms = torch.tensor(np.load(cache_dirs[1] / "sqnorms.npy"), device=device)
-        k_yy_mean = torch.tensor(np.load(cache_dirs[1] / "kernel_mean.npy"), device=device)
+        d2_yy = torch.tensor(np.load(cache_dirs[1] / "d2.npy"), device=device)
     else:
         yy = y @ y.T
         y_sqnorms = torch.diagonal(yy)
         d2_yy = y_sqnorms.unsqueeze(1) + y_sqnorms.unsqueeze(0) - 2 * yy # shape (n, n)
-        k_yy = kernel(d2_yy)
-        k_yy = k_yy - torch.diag(torch.diagonal(k_yy))
-        k_yy_mean = k_yy.sum() / (n * (n - 1))
-
         if cache_dirs[1] is not None:
             cache_dirs[1].mkdir(parents=True, exist_ok=True)
             np.save(cache_dirs[1] / "sqnorms.npy", y_sqnorms.cpu().numpy())
-            np.save(cache_dirs[1] / "kernel_mean.npy", k_yy_mean.cpu().numpy())
+            np.save(cache_dirs[1] / "d2.npy", d2_yy.cpu().numpy())
+
+    k_yy = kernel(d2_yy)
+    k_yy = k_yy - torch.diag(torch.diagonal(k_yy))
+    k_yy_mean = k_yy.sum() / (n * (n - 1))
     
     # Compute kernel statistics for xy
     xy = x @ y.T
